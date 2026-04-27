@@ -12,7 +12,7 @@ CPU16 is a custom 16‑bit CPU implemented in Verilog that supports:
 - Control + I/O: LOADI, MOV, OUT, STOP, and a new NOT instruction
 
 Tools used:
-- Vivado 2026 (or your version)
+- Vivado 2023 (or your version)
 - ModelSim / XSim for simulation
 - Custom C assembler (assemblerfull.c) that converts assembly
   to 16‑bit hex for instruction memory (program.txt)
