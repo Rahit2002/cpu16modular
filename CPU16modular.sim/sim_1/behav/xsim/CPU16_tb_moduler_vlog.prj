@@ -1,0 +1,16 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  \
+"../../../../CPU16modular.srcs/sources_1/new/ALU16.v" \
+"../../../../CPU16modular.srcs/sources_1/new/CPU16.v" \
+"../../../../CPU16modular.srcs/sources_1/new/MAC.v" \
+"../../../../CPU16modular.srcs/sources_1/new/Mat_mul.v" \
+"../../../../CPU16modular.srcs/sources_1/new/NN.v" \
+"../../../../CPU16modular.srcs/sources_1/new/instr_mem.v" \
+"../../../../CPU16modular.srcs/sources_1/new/reg_file.v" \
+"../../../../CPU16modular.srcs/sim_1/new/CPU16_tb_moduler.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

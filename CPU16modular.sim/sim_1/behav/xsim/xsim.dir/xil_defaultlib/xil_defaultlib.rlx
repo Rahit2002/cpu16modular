@@ -1,0 +1,13 @@
+0.7
+2020.2
+Oct 13 2023
+20:47:58
+E:/vhdl programs/CPU16modular/CPU16modular.sim/sim_1/behav/xsim/glbl.v,1697210495,verilog,,,,glbl,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sim_1/new/CPU16_tb_moduler.v,1777273539,verilog,,,,CPU16_tb_moduler,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/ALU16.v,1777283025,verilog,,E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/CPU16.v,,ALU16,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/CPU16.v,1777289368,verilog,,E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/MAC.v,,CPU16,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/MAC.v,1777273077,verilog,,E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/Mat_mul.v,,MAC,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/Mat_mul.v,1777270735,verilog,,E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/NN.v,,Mat_mul,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/NN.v,1777240531,verilog,,E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/instr_mem.v,,NN,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/instr_mem.v,1777232992,verilog,,E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/reg_file.v,,instr_mem,,,,,,,,
+E:/vhdl programs/CPU16modular/CPU16modular.srcs/sources_1/new/reg_file.v,1777271728,verilog,,E:/vhdl programs/CPU16modular/CPU16modular.srcs/sim_1/new/CPU16_tb_moduler.v,,reg_file,,,,,,,,

@@ -1,0 +1,381 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 26.04.2026 16:46:10
+// Design Name: 
+// Module Name: CPU16
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+module CPU16(
+    input clk,
+    input rst,
+    output [15:0] dbg
+    );
+    
+    // Program Counter
+    reg [15:0] pc;
+    
+    // IF/ID pipeline register
+    reg [15:0] if_id_instr;
+    
+    // Instruction Memory wires
+    wire [15:0] current_instr;
+    
+    // Instruction Memory Instance
+    instr_mem imem (
+        .addr(pc),
+        .instr(current_instr)
+    );
+    /*
+    // INSTRUCTION FORMAT (MULTI-REGISTER)
+    // [15:12] opcode
+    // [11:9]  rd
+    // [8:6]   rs1
+    // [5:3]   rs2
+    // [7:0]   immediate for LOADI
+    */
+    wire [3:0] opcode;
+    wire [2:0] rd;
+    wire [2:0] rs1;
+    wire [2:0] rs2;
+    wire [7:0] imm8;
+    
+    assign opcode = if_id_instr[15:12];
+    assign rd     = if_id_instr[11:9];
+    assign rs1    = if_id_instr[8:6];
+    assign rs2    = if_id_instr[5:3];
+    assign imm8   = if_id_instr[7:0];
+
+    // Register File wires
+    wire [15:0] rdata1;
+    wire [15:0] rdata2;
+    
+    reg Wen;
+    reg [2:0] waddr;
+    reg [15:0] wdata;
+    
+    // Register File Instance
+    reg_file rf (
+        .clk(clk),
+        .Wen(Wen),
+        .rst(rst),
+    
+        .waddr(waddr),
+        .wdata(wdata),
+    
+        .radd1(rs1),   // always read R1
+        .radd2(rs2),   // optional
+    
+        .rdata1(rdata1),
+        .rdata2(rdata2)
+    );
+
+
+    // ALU signals
+    reg  [15:0] alu_a;
+    reg  [15:0] alu_b;
+    reg  [15:0] alu_acc = 16'b0;//.......
+    reg  [2:0]  alu_op;
+    wire [15:0] alu_result;
+
+    // ALU Instance
+    ALU16 alu0 (
+        .a(alu_a),
+        .b(alu_b),
+        .acc(alu_acc),
+        .op(alu_op),
+        .result(alu_result)
+    );
+    wire[31:0] mac_result;
+    reg  [15:0] mac_acc = 16'b0;
+    MAC mac0 (
+        .a(rdata1),
+        .b(rdata2),
+        .acc(mac_acc),
+        .result(mac_result)
+    );
+    
+    wire [15:0] c00;
+    wire [15:0] c01;
+    wire [15:0] c10;
+    wire [15:0] c11;
+    
+    Mat_mul matmul0 (
+        .a00(rf.regs[0]),
+        .a01(rf.regs[1]),
+        .a10(rf.regs[2]),
+        .a11(rf.regs[3]),
+        .b00(rf.regs[4]),
+        .b01(rf.regs[5]),
+        .b10(rf.regs[6]),
+        .b11(rf.regs[7]),
+        .c00(c00),
+        .c01(c01),
+        .c10(c10),
+        .c11(c11)
+    );
+    // Debug Output
+    // Show R1 directly
+    //wire[15:0] cur_val = (Wen && (waddr == 3'b001)) ? wdata : rdata1 ;
+    //newValue or Old_value_from_reg
+    assign dbg = rdata1;
+
+//`   [S2]
+    // Main CPU Logic 
+    always @(posedge clk or posedge rst) begin
+    
+        if (rst) begin
+            pc          <= 16'b0;
+            if_id_instr <= 16'b0;
+    
+            Wen         <= 1'b0;
+            waddr       <= 3'b000;
+            wdata       <= 16'b0;
+            alu_op      <=3'b000;
+    /*
+            alu_a       <= 16'b0;
+            alu_b       <= 16'b0;
+            alu_acc     <= 16'b0;
+            alu_op      <= 3'b000;
+      */
+        end
+    
+        else begin
+        
+            // Default every cycle
+            Wen   <= 1'b0;
+            waddr <= 3'b000;
+            wdata <= 16'b0;
+            alu_op <=3'b000;
+            // EXECUTE + WRITEBACK
+            case (opcode)
+            
+                // LOAD rd, imm
+                4'h1: begin
+                    Wen   <= 1'b1;
+                    waddr <= rd; // R1
+                    wdata <= {8'b0,imm8};
+                end
+
+                // ADD rd, rs1, rs2
+                4'h2: begin
+                    Wen   <= 1'b1;
+                    waddr <= rd;
+                    wdata <= rdata1 + rdata2;
+                    alu_op <=3'b000;
+                end
+    
+                // OUT
+                4'h3: begin
+                    // observe using dbg no write needed
+                end
+
+                // SUB rd, rs1, rs2
+                4'h4: begin
+                    Wen   <= 1'b1;
+                    waddr <= rd;
+                    wdata <= rdata1 - rdata2;
+                    alu_op <= 3'b001;
+                end
+    
+                // MUL rd, rs1, rs2\
+                4'h5: begin 
+                    Wen   <= 1'b1;
+                    waddr <= rd;
+                    wdata <= rdata1 * rdata2;
+                    alu_op <= 3'b101;
+                end
+                
+                //MAC rd, rs1, rs2
+                4'h6: begin
+                    Wen   <= 1'b1;
+                    waddr <= rd;
+                    wdata <= mac_result[15:0];
+                end
+                
+                //MATMUL rd
+                4'h7: begin
+                    Wen   <= 1'b1;
+                    waddr <= rd;
+                    wdata <= c00;
+                end
+                // NOP
+                default: begin
+                    // do nothing
+                end
+    
+            endcase
+
+            // FETCH
+            if_id_instr <= current_instr;
+            pc <= pc + 16'd2;
+    
+        end
+    end
+endmodule
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+ /*   
+    
+    
+    //program counter
+    reg[15:0] pc;
+    //instruction memory
+//    reg[15:0] instr_mem[255:0];
+    //registers
+//    reg [15:0] reg_file[0:7];
+
+//Declation of variables for instr_mem instances
+    wire [15:0] current_instr;
+    wire [15:0] rdata1;
+    wire [15:0] rdata2;
+    
+    reg Wen;
+    reg [2:0] waddr;
+    reg [15:0] wdata;
+    
+    // IF/ID Pipeline Register
+    reg [15:0] if_id_instr;
+    
+    // ALU Signals
+    reg  [15:0] alu_a;
+    reg  [15:0] alu_b;
+    reg  [15:0] alu_acc;
+    reg  [2:0]  alu_op;
+    wire [15:0] alu_result;
+    
+    //Instructionn mem instances
+    instr_mem imem (
+        .addr(pc),
+        .instr(current_instr)
+    );
+    
+    //Reg_file instances
+    reg_file rf (
+        .clk(clk),
+        .Wen(Wen),
+        .rst(rst),
+    
+        .waddr(waddr),
+        .wdata(wdata),
+    
+        .radd1(3'b001),
+        .radd2(3'b000),
+    
+        .rdata1(rdata1),
+        .rdata2(rdata2)
+    );
+    // Debug Output
+    assign dbg = rdata1;
+    
+    // ALU Instance
+    ALU16 alu0 (
+        .a(alu_a),
+        .b(alu_b),
+        .acc(alu_acc),
+        .op(alu_op),
+        .result(alu_result)
+    );
+    
+    // Initial Program
+    //hard coded instructions
+ /*   initial begin
+        instr_mem[0] = 16'h100F; // LOAD 15
+        instr_mem[1] = 16'h200F; // ADD 15
+        instr_mem[2] = 16'h4003; // SUB 3
+        instr_mem[3] = 16'h500B; // MUL 11
+        instr_mem[4] = 16'h3000; // OUT
+        instr_mem[5] = 16'h0000; // NOP
+    end*/
+    
+  /*  // Main CPU Logic
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            pc <= 16'b0;
+            if_id_instr <= 16'b0;
+//            reg_file[1] <= 16'b0;
+            Wen   <= 1'b1;
+            waddr <= 3'b001;
+            wdata <= {12'b0, if_id_instr[3:0]};
+                
+            alu_a <= 16'b0;
+            alu_b  <= 16'b0;
+            alu_acc <= 16'b0;
+            alu_op  <= 3'b000;
+        end
+        else begin
+    
+            // EXECUTE + WRITEBACK
+            case (if_id_instr[15:12])
+    
+                // LOAD
+                4'h1: begin
+                    reg_file[1] <= {12'b0, if_id_instr[3:0]};
+                end
+    
+                // ADD
+                4'h2: begin
+                    alu_a  <= reg_file[1];
+                    alu_b  <= {12'b0, if_id_instr[3:0]};
+                    alu_op <= 3'b000;
+                    reg_file[1] <= alu_result;
+                end
+    
+                // OUT
+                4'h3: begin
+                    // observe through dbg
+                end
+    
+                // SUB
+                4'h4: begin
+                    alu_a  <= reg_file[1];
+                    alu_b  <= {12'b0, if_id_instr[3:0]};
+                    alu_op <= 3'b001;
+                    reg_file[1] <= alu_result;
+                end
+    
+                // MUL
+                4'h5: begin
+                    alu_a  <= reg_file[1];
+                    alu_b  <= {12'b0, if_id_instr[3:0]};
+                    alu_op <= 3'b101;
+                    reg_file[1] <= alu_result;
+                end
+    
+                default: begin
+                    // NOP
+                end
+    
+            endcase
+    
+            // FETCH
+//            if_id_instr <= instr_mem[pc >> 1];
+            if_id_instr <= current_instr;
+            pc <= pc + 2;
+    
+        end
+    end
+endmodule
+*/
